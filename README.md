@@ -21,10 +21,11 @@ To kickstart our project, I first designed our database by identifying key table
 - JobCategoryMapping
 - Messages
 - Notifications
+  
 This list includes the core tables required for a job portal, but it can be extended by adding more tables to meet specific requirements.
 
 ### Database Backend
-I created our database using MySQL. You can find the database schema creation script in the database_schema.sql file under the scripts folder.
+I created our database using MySQL. However, you can choose any database you prefer, provided you install the relevant Entity Framework package and configure the database connection accordingly. You can find the database schema creation script in the database_schema.sql file under the scripts folder.
 
 ## Development
 
