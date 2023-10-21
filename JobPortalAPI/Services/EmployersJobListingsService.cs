@@ -1,50 +1,65 @@
+using Microsoft.EntityFrameworkCore;
+using JobPortalAPI.Data;
 using JobPortalAPI.Models;
 
 namespace JobPortalAPI.Services
 {
+    /// <summary>
+    /// Service for managing employer's job listings using Entity Framework and an injected DbContext.
+    /// </summary>
     public class EmployersJobListingsService
     {
-        private readonly List<EmployersJobListingsModel> _employersJobListings = new List<EmployersJobListingsModel>();
-        private int _nextEmployersJobListingID = 1;
+        private readonly ApplicationDbContext _context;
 
-        /// <summary>
-        /// Get a list of all employer's job listings.
-        /// </summary>
-        public IEnumerable<EmployersJobListingsModel> GetEmployersJobListings()
+        public EmployersJobListingsService(ApplicationDbContext context)
         {
-            return _employersJobListings;
+            _context = context;
         }
 
         /// <summary>
-        /// Get an employer's job listing by its unique ID.
+        /// Get a list of all employer's job listings asynchronously.
+        /// </summary>
+        /// <returns>An asynchronous operation that returns a collection of employer's job listings.</returns>
+        public async Task<IEnumerable<EmployersJobListingsModel>> GetEmployersJobListingsAsync()
+        {
+            return await _context.EmployersJobListings.ToListAsync();
+        }
+
+        /// <summary>
+        /// Get an employer's job listing by its unique ID asynchronously.
         /// </summary>
         /// <param name="employersJobListingID">The ID of the employer's job listing to retrieve.</param>
-        public EmployersJobListingsModel GetEmployersJobListing(int employersJobListingID)
+        /// <returns>An asynchronous operation that returns the employer's job listing with the specified ID.</returns>
+        public async Task<EmployersJobListingsModel?> GetEmployersJobListingAsync(int employersJobListingID)
         {
-            return _employersJobListings.FirstOrDefault(ejl => ejl.EmployersJobListingID == employersJobListingID);
+            return await _context.EmployersJobListings.FirstOrDefaultAsync(ejl => ejl.EmployersJobListingID == employersJobListingID);
         }
 
         /// <summary>
-        /// Create a new employer's job listing.
+        /// Create a new employer's job listing asynchronously.
         /// </summary>
         /// <param name="employersJobListing">The employer's job listing object to create.</param>
-        public EmployersJobListingsModel CreateEmployersJobListing(EmployersJobListingsModel employersJobListing)
+        /// <returns>An asynchronous operation that returns the newly created employer's job listing.</returns>
+        public async Task<EmployersJobListingsModel> CreateEmployersJobListingAsync(EmployersJobListingsModel employersJobListing)
         {
-            employersJobListing.EmployersJobListingID = _nextEmployersJobListingID++;
-            _employersJobListings.Add(employersJobListing);
+            employersJobListing.EmployersJobListingID = 0; // EF Core will auto-generate the ID
+            _context.EmployersJobListings.Add(employersJobListing);
+            await _context.SaveChangesAsync();
             return employersJobListing;
         }
 
         /// <summary>
-        /// Delete an employer's job listing by its unique ID.
+        /// Delete an employer's job listing by its unique ID asynchronously.
         /// </summary>
         /// <param name="employersJobListingID">The ID of the employer's job listing to delete.</param>
-        public void DeleteEmployersJobListing(int employersJobListingID)
+        /// <returns>An asynchronous operation to delete the employer's job listing.</returns>
+        public async Task DeleteEmployersJobListingAsync(int employersJobListingID)
         {
-            var employerJobListingToRemove = _employersJobListings.FirstOrDefault(ejl => ejl.EmployersJobListingID == employersJobListingID);
+            var employerJobListingToRemove = await _context.EmployersJobListings.FirstOrDefaultAsync(ejl => ejl.EmployersJobListingID == employersJobListingID);
             if (employerJobListingToRemove != null)
             {
-                _employersJobListings.Remove(employerJobListingToRemove);
+                _context.EmployersJobListings.Remove(employerJobListingToRemove);
+                await _context.SaveChangesAsync();
             }
         }
     }

@@ -9,19 +9,30 @@ namespace JobPortalAPI.Controllers
     public class MessagesController : ControllerBase
     {
         private readonly MessagesService _messagesService;
+        private readonly ILogger<MessagesController> _logger;
 
-        public MessagesController(MessagesService messagesService)
+        public MessagesController(MessagesService messagesService, ILogger<MessagesController> logger)
         {
             _messagesService = messagesService;
+            _logger = logger;
         }
 
         /// <summary>
         /// Get a list of all messages.
         /// </summary>
         [HttpGet]
-        public ActionResult<IEnumerable<MessagesModel>> GetMessages()
+        public async Task<ActionResult<IEnumerable<MessagesModel>>>GetMessages()
         {
-            return Ok(_messagesService.GetMessages());
+            try
+            {
+                var messages = await _messagesService.GetMessagesAsync();
+                return Ok(messages);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(MessagesController)}.{nameof(GetMessages)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while fetching messages.");
+            }
         }
 
         /// <summary>
@@ -29,14 +40,22 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="id">The ID of the message to retrieve.</param>
         [HttpGet("{id}")]
-        public ActionResult<MessagesModel> GetMessage(int id)
+        public async Task<ActionResult<MessagesModel>> GetMessage(int id)
         {
-            var message = _messagesService.GetMessage(id);
-            if (message == null)
+            try
             {
-                return NotFound();
+                var message = await _messagesService.GetMessageAsync(id);
+                if (message == null)
+                {
+                    return NotFound();
+                }
+                return Ok(message);
             }
-            return Ok(message);
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(MessagesController)}.{nameof(GetMessage)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while fetching the message.");
+            }
         }
 
         /// <summary>
@@ -44,11 +63,19 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="message">The message object to create.</param>
         [HttpPost]
-        public ActionResult<MessagesModel> CreateMessage(MessagesModel message)
+        public async Task<ActionResult<MessagesModel>> CreateMessage(MessagesModel message)
         {
-            message.Timestamp = DateTime.Now; // Set the current timestamp.
-            var createdMessage = _messagesService.CreateMessage(message);
-            return CreatedAtAction(nameof(GetMessage), new { id = createdMessage.MessageID }, createdMessage);
+            try
+            {
+                message.Timestamp = DateTime.Now; // Set the current timestamp.
+                var createdMessage = await _messagesService.CreateMessageAsync(message);
+                return CreatedAtAction(nameof(GetMessage), new { id = createdMessage.MessageID }, createdMessage);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(MessagesController)}.{nameof(CreateMessage)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while creating the message.");
+            }
         }
 
         /// <summary>
@@ -56,10 +83,18 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="id">The ID of the message to delete.</param>
         [HttpDelete("{id}")]
-        public IActionResult DeleteMessage(int id)
+        public async Task<IActionResult> DeleteMessage(int id)
         {
-            _messagesService.DeleteMessage(id);
-            return NoContent();
+            try
+            {
+                await _messagesService.DeleteMessageAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(MessagesController)}.{nameof(DeleteMessage)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while deleting the message.");
+            }
         }
     }
 }

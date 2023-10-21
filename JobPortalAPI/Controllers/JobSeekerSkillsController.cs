@@ -9,19 +9,30 @@ namespace JobPortalAPI.Controllers
     public class JobSeekerSkillsController : ControllerBase
     {
         private readonly JobSeekerSkillsService _jobSeekerSkillsService;
+        private readonly ILogger<JobSeekerSkillsController> _logger;
 
-        public JobSeekerSkillsController(JobSeekerSkillsService jobSeekerSkillsService)
+        public JobSeekerSkillsController(JobSeekerSkillsService jobSeekerSkillsService, ILogger<JobSeekerSkillsController> logger)
         {
             _jobSeekerSkillsService = jobSeekerSkillsService;
+            _logger = logger;
         }
 
         /// <summary>
         /// Get a list of all job seeker skills.
         /// </summary>
         [HttpGet]
-        public ActionResult<IEnumerable<JobSeekerSkillsModel>> GetJobSeekerSkills()
+        public async Task<ActionResult<IEnumerable<JobSeekerSkillsModel>>>GetJobSeekerSkills()
         {
-            return Ok(_jobSeekerSkillsService.GetJobSeekerSkills());
+            try
+            {
+                var jobSeekerSkills = await _jobSeekerSkillsService.GetJobSeekerSkillsAsync();
+                return Ok(jobSeekerSkills);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(JobSeekerSkillsController)}.{nameof(GetJobSeekerSkills)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while fetching job seeker skills.");
+            }
         }
 
         /// <summary>
@@ -29,14 +40,22 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="id">The ID of the job seeker skill to retrieve.</param>
         [HttpGet("{id}")]
-        public ActionResult<JobSeekerSkillsModel> GetJobSeekerSkill(int id)
+        public async Task<ActionResult<JobSeekerSkillsModel>> GetJobSeekerSkill(int id)
         {
-            var jobSeekerSkill = _jobSeekerSkillsService.GetJobSeekerSkill(id);
-            if (jobSeekerSkill == null)
+            try
             {
-                return NotFound();
+                var jobSeekerSkill = await _jobSeekerSkillsService.GetJobSeekerSkillAsync(id);
+                if (jobSeekerSkill == null)
+                {
+                    return NotFound();
+                }
+                return Ok(jobSeekerSkill);
             }
-            return Ok(jobSeekerSkill);
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(JobSeekerSkillsController)}.{nameof(GetJobSeekerSkill)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while fetching the job seeker skill.");
+            }
         }
 
         /// <summary>
@@ -44,10 +63,18 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="jobSeekerSkill">The job seeker skill object to create.</param>
         [HttpPost]
-        public ActionResult<JobSeekerSkillsModel> CreateJobSeekerSkill(JobSeekerSkillsModel jobSeekerSkill)
+        public async Task<ActionResult<JobSeekerSkillsModel>> CreateJobSeekerSkill(JobSeekerSkillsModel jobSeekerSkill)
         {
-            var createdJobSeekerSkill = _jobSeekerSkillsService.CreateJobSeekerSkill(jobSeekerSkill);
-            return CreatedAtAction(nameof(GetJobSeekerSkill), new { id = createdJobSeekerSkill.JobSeekerSkillID }, createdJobSeekerSkill);
+            try
+            {
+                var createdJobSeekerSkill = await _jobSeekerSkillsService.CreateJobSeekerSkillAsync(jobSeekerSkill);
+                return CreatedAtAction(nameof(GetJobSeekerSkill), new { id = createdJobSeekerSkill.JobSeekerSkillID }, createdJobSeekerSkill);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(JobSeekerSkillsController)}.{nameof(CreateJobSeekerSkill)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while creating the job seeker skill.");
+            }
         }
 
         /// <summary>
@@ -56,16 +83,24 @@ namespace JobPortalAPI.Controllers
         /// <param name="id">The ID of the job seeker skill to update.</param>
         /// <param name="jobSeekerSkill">The updated job seeker skill object.</param>
         [HttpPut("{id}")]
-        public IActionResult UpdateJobSeekerSkill(int id, JobSeekerSkillsModel jobSeekerSkill)
+        public async Task<IActionResult> UpdateJobSeekerSkill(int id, JobSeekerSkillsModel jobSeekerSkill)
         {
-            if (id != jobSeekerSkill.JobSeekerSkillID)
+            try
             {
-                return BadRequest();
+                if (id != jobSeekerSkill.JobSeekerSkillID)
+                {
+                    return BadRequest();
+                }
+
+                await _jobSeekerSkillsService.UpdateJobSeekerSkillAsync(id, jobSeekerSkill);
+
+                return NoContent();
             }
-
-            _jobSeekerSkillsService.UpdateJobSeekerSkill(id, jobSeekerSkill);
-
-            return NoContent();
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(JobSeekerSkillsController)}.{nameof(UpdateJobSeekerSkill)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while updating the job seeker skill.");
+            }
         }
 
         /// <summary>
@@ -73,10 +108,18 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="id">The ID of the job seeker skill to delete.</param>
         [HttpDelete("{id}")]
-        public IActionResult DeleteJobSeekerSkill(int id)
+        public async Task<IActionResult> DeleteJobSeekerSkill(int id)
         {
-            _jobSeekerSkillsService.DeleteJobSeekerSkill(id);
-            return NoContent();
+            try
+            {
+                await _jobSeekerSkillsService.DeleteJobSeekerSkillAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(JobSeekerSkillsController)}.{nameof(DeleteJobSeekerSkill)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while deleting the job seeker skill.");
+            }
         }
     }
 }

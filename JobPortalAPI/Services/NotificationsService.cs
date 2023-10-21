@@ -1,51 +1,66 @@
+using Microsoft.EntityFrameworkCore;
+using JobPortalAPI.Data;
 using JobPortalAPI.Models;
 
 namespace JobPortalAPI.Services
 {
+    /// <summary>
+    /// Service for managing notifications using Entity Framework and an injected DbContext.
+    /// </summary>
     public class NotificationsService
     {
-        private readonly List<NotificationsModel> _notifications = new List<NotificationsModel>();
-        private int _nextNotificationID = 1;
+        private readonly ApplicationDbContext _context;
 
-        /// <summary>
-        /// Get a list of all notifications.
-        /// </summary>
-        public IEnumerable<NotificationsModel> GetNotifications()
+        public NotificationsService(ApplicationDbContext context)
         {
-            return _notifications;
+            _context = context;
         }
 
         /// <summary>
-        /// Get a notification by its unique ID.
+        /// Get a list of all notifications asynchronously.
+        /// </summary>
+        /// <returns>An asynchronous operation that returns a collection of notifications.</returns>
+        public async Task<IEnumerable<NotificationsModel>> GetNotificationsAsync()
+        {
+            return await _context.Notifications.ToListAsync();
+        }
+
+        /// <summary>
+        /// Get a notification by its unique ID asynchronously.
         /// </summary>
         /// <param name="notificationID">The ID of the notification to retrieve.</param>
-        public NotificationsModel GetNotification(int notificationID)
+        /// <returns>An asynchronous operation that returns the notification with the specified ID.</returns>
+        public async Task<NotificationsModel?> GetNotificationAsync(int notificationID)
         {
-            return _notifications.FirstOrDefault(n => n.NotificationID == notificationID);
+            return await _context.Notifications.FirstOrDefaultAsync(n => n.NotificationID == notificationID);
         }
 
         /// <summary>
-        /// Create a new notification.
+        /// Create a new notification asynchronously.
         /// </summary>
         /// <param name="notification">The notification object to create.</param>
-        public NotificationsModel CreateNotification(NotificationsModel notification)
+        /// <returns>An asynchronous operation that returns the newly created notification.</returns>
+        public async Task<NotificationsModel> CreateNotificationAsync(NotificationsModel notification)
         {
-            notification.NotificationID = _nextNotificationID++;
+            notification.NotificationID = 0; // EF Core will auto-generate the ID
             notification.Timestamp = DateTime.Now; // Set the current timestamp.
-            _notifications.Add(notification);
+            _context.Notifications.Add(notification);
+            await _context.SaveChangesAsync();
             return notification;
         }
 
         /// <summary>
-        /// Delete a notification by its unique ID.
+        /// Delete a notification by its unique ID asynchronously.
         /// </summary>
         /// <param name="notificationID">The ID of the notification to delete.</param>
-        public void DeleteNotification(int notificationID)
+        /// <returns>An asynchronous operation to delete the notification.</returns>
+        public async Task DeleteNotificationAsync(int notificationID)
         {
-            var notificationToRemove = _notifications.FirstOrDefault(n => n.NotificationID == notificationID);
+            var notificationToRemove = await _context.Notifications.FirstOrDefaultAsync(n => n.NotificationID == notificationID);
             if (notificationToRemove != null)
             {
-                _notifications.Remove(notificationToRemove);
+                _context.Notifications.Remove(notificationToRemove);
+                await _context.SaveChangesAsync();
             }
         }
     }

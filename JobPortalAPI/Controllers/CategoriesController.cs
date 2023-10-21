@@ -9,19 +9,30 @@ namespace JobPortalAPI.Controllers
     public class CategoriesController : ControllerBase
     {
         private readonly CategoriesService _categoriesService;
+        private readonly ILogger<CategoriesController> _logger;
 
-        public CategoriesController(CategoriesService categoriesService)
+        public CategoriesController(CategoriesService categoriesService, ILogger<CategoriesController> logger)
         {
             _categoriesService = categoriesService;
+            _logger = logger;
         }
 
         /// <summary>
         /// Get a list of all categories.
         /// </summary>
         [HttpGet]
-        public ActionResult<IEnumerable<CategoriesModel>> GetCategories()
+        public async Task<ActionResult<IEnumerable<CategoriesModel>>> GetCategories()
         {
-            return Ok(_categoriesService.GetCategories());
+            try
+            {
+                var categories = await _categoriesService.GetCategoriesAsync();
+                return Ok(categories);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(CategoriesController)}.{nameof(GetCategories)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while fetching categories.");
+            }
         }
 
         /// <summary>
@@ -29,14 +40,22 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="id">The ID of the category to retrieve.</param>
         [HttpGet("{id}")]
-        public ActionResult<CategoriesModel> GetCategory(int id)
+        public async Task<ActionResult<CategoriesModel>> GetCategory(int id)
         {
-            var category = _categoriesService.GetCategory(id);
-            if (category == null)
+            try
             {
-                return NotFound();
+                var category = await _categoriesService.GetCategoryAsync(id);
+                if (category == null)
+                {
+                    return NotFound();
+                }
+                return Ok(category);
             }
-            return Ok(category);
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(CategoriesController)}.{nameof(GetCategory)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while fetching the category.");
+            }
         }
 
         /// <summary>
@@ -44,10 +63,18 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="category">The category object to create.</param>
         [HttpPost]
-        public ActionResult<CategoriesModel> CreateCategory(CategoriesModel category)
+        public async Task<ActionResult<CategoriesModel>> CreateCategory(CategoriesModel category)
         {
-            var createdCategory = _categoriesService.CreateCategory(category);
-            return CreatedAtAction(nameof(GetCategory), new { id = createdCategory.CategoryID }, createdCategory);
+            try
+            {
+                var createdCategory = await _categoriesService.CreateCategoryAsync(category);
+                return CreatedAtAction(nameof(GetCategory), new { id = createdCategory.CategoryID }, createdCategory);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(CategoriesController)}.{nameof(CreateCategory)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while creating the category.");
+            }
         }
 
         /// <summary>
@@ -56,16 +83,24 @@ namespace JobPortalAPI.Controllers
         /// <param name="id">The ID of the category to update.</param>
         /// <param name="category">The updated category object.</param>
         [HttpPut("{id}")]
-        public IActionResult UpdateCategory(int id, CategoriesModel category)
+        public async Task<IActionResult> UpdateCategory(int id, CategoriesModel category)
         {
-            if (id != category.CategoryID)
+            try
             {
-                return BadRequest();
+                if (id != category.CategoryID)
+                {
+                    return BadRequest();
+                }
+
+                await _categoriesService.UpdateCategoryAsync(id, category);
+
+                return NoContent();
             }
-
-            _categoriesService.UpdateCategory(id, category);
-
-            return NoContent();
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(CategoriesController)}.{nameof(UpdateCategory)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while updating the category.");
+            }
         }
 
         /// <summary>
@@ -73,10 +108,18 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="id">The ID of the category to delete.</param>
         [HttpDelete("{id}")]
-        public IActionResult DeleteCategory(int id)
+        public async Task<IActionResult> DeleteCategory(int id)
         {
-            _categoriesService.DeleteCategory(id);
-            return NoContent();
+            try
+            {
+                await _categoriesService.DeleteCategoryAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(CategoriesController)}.{nameof(DeleteCategory)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while deleting the category.");
+            }
         }
     }
 }

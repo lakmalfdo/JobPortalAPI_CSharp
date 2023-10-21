@@ -9,19 +9,30 @@ namespace JobPortalAPI.Controllers
     public class NotificationsController : ControllerBase
     {
         private readonly NotificationsService _notificationsService;
+        private readonly ILogger<NotificationsController> _logger;
 
-        public NotificationsController(NotificationsService notificationsService)
+        public NotificationsController(NotificationsService notificationsService, ILogger<NotificationsController> logger)
         {
             _notificationsService = notificationsService;
+            _logger = logger;
         }
 
         /// <summary>
         /// Get a list of all notifications.
         /// </summary>
         [HttpGet]
-        public ActionResult<IEnumerable<NotificationsModel>> GetNotifications()
+        public async Task<ActionResult<IEnumerable<NotificationsModel>>>GetNotifications()
         {
-            return Ok(_notificationsService.GetNotifications());
+            try
+            {
+                var notifications = await _notificationsService.GetNotificationsAsync();
+                return Ok(notifications);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(NotificationsController)}.{nameof(GetNotifications)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while fetching notifications.");
+            }
         }
 
         /// <summary>
@@ -29,14 +40,22 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="id">The ID of the notification to retrieve.</param>
         [HttpGet("{id}")]
-        public ActionResult<NotificationsModel> GetNotification(int id)
+        public async Task<ActionResult<NotificationsModel>> GetNotification(int id)
         {
-            var notification = _notificationsService.GetNotification(id);
-            if (notification == null)
+            try
             {
-                return NotFound();
+                var notification = await _notificationsService.GetNotificationAsync(id);
+                if (notification == null)
+                {
+                    return NotFound();
+                }
+                return Ok(notification);
             }
-            return Ok(notification);
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(NotificationsController)}.{nameof(GetNotification)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while fetching the notification.");
+            }
         }
 
         /// <summary>
@@ -44,10 +63,18 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="notification">The notification object to create.</param>
         [HttpPost]
-        public ActionResult<NotificationsModel> CreateNotification(NotificationsModel notification)
+        public async Task<ActionResult<NotificationsModel>> CreateNotification(NotificationsModel notification)
         {
-            var createdNotification = _notificationsService.CreateNotification(notification);
-            return CreatedAtAction(nameof(GetNotification), new { id = createdNotification.NotificationID }, createdNotification);
+            try
+            {
+                var createdNotification = await _notificationsService.CreateNotificationAsync(notification);
+                return CreatedAtAction(nameof(GetNotification), new { id = createdNotification.NotificationID }, createdNotification);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(NotificationsController)}.{nameof(CreateNotification)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while creating the notification.");
+            }
         }
 
         /// <summary>
@@ -55,10 +82,18 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="id">The ID of the notification to delete.</param>
         [HttpDelete("{id}")]
-        public IActionResult DeleteNotification(int id)
+        public async Task<IActionResult> DeleteNotification(int id)
         {
-            _notificationsService.DeleteNotification(id);
-            return NoContent();
+            try
+            {
+                await _notificationsService.DeleteNotificationAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(NotificationsController)}.{nameof(DeleteNotification)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while deleting the notification.");
+            }
         }
     }
 }

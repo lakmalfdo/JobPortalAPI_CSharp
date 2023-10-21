@@ -9,19 +9,30 @@ namespace JobPortalAPI.Controllers
     public class SkillsController : ControllerBase
     {
         private readonly SkillsService _skillsService;
+        private readonly ILogger<SkillsController> _logger;
 
-        public SkillsController(SkillsService skillsService)
+        public SkillsController(SkillsService skillsService, ILogger<SkillsController> logger)
         {
             _skillsService = skillsService;
+            _logger = logger;
         }
 
         /// <summary>
         /// Get a list of all skills.
         /// </summary>
         [HttpGet]
-        public ActionResult<IEnumerable<SkillsModel>> GetSkills()
+        public async Task<ActionResult<IEnumerable<SkillsModel>>>GetSkills()
         {
-            return Ok(_skillsService.GetSkills());
+            try
+            {
+                var skills = await _skillsService.GetSkillsAsync();
+                return Ok(skills);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(SkillsController)}.{nameof(GetSkills)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while fetching skills.");
+            }
         }
 
         /// <summary>
@@ -29,14 +40,22 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="id">The ID of the skill to retrieve.</param>
         [HttpGet("{id}")]
-        public ActionResult<SkillsModel> GetSkill(int id)
+        public async Task<ActionResult<SkillsModel>> GetSkill(int id)
         {
-            var skill = _skillsService.GetSkill(id);
-            if (skill == null)
+            try
             {
-                return NotFound();
+                var skill = await _skillsService.GetSkillAsync(id);
+                if (skill == null)
+                {
+                    return NotFound();
+                }
+                return Ok(skill);
             }
-            return Ok(skill);
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(SkillsController)}.{nameof(GetSkill)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while fetching the skill.");
+            }
         }
 
         /// <summary>
@@ -44,10 +63,18 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="skill">The skill object to create.</param>
         [HttpPost]
-        public ActionResult<SkillsModel> CreateSkill(SkillsModel skill)
+        public async Task<ActionResult<SkillsModel>> CreateSkill(SkillsModel skill)
         {
-            var createdSkill = _skillsService.CreateSkill(skill);
-            return CreatedAtAction(nameof(GetSkill), new { id = createdSkill.SkillID }, createdSkill);
+            try
+            {
+                var createdSkill = await _skillsService.CreateSkillAsync(skill);
+                return CreatedAtAction(nameof(GetSkill), new { id = createdSkill.SkillID }, createdSkill);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(SkillsController)}.{nameof(CreateSkill)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while creating the skill.");
+            }
         }
 
         /// <summary>
@@ -56,16 +83,24 @@ namespace JobPortalAPI.Controllers
         /// <param name="id">The ID of the skill to update.</param>
         /// <param name="skill">The updated skill object.</param>
         [HttpPut("{id}")]
-        public IActionResult UpdateSkill(int id, SkillsModel skill)
+        public async Task<IActionResult> UpdateSkill(int id, SkillsModel skill)
         {
-            if (id != skill.SkillID)
+            try
             {
-                return BadRequest();
+                if (id != skill.SkillID)
+                {
+                    return BadRequest();
+                }
+
+                await _skillsService.UpdateSkillAsync(id, skill);
+
+                return NoContent();
             }
-
-            _skillsService.UpdateSkill(id, skill);
-
-            return NoContent();
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(SkillsController)}.{nameof(UpdateSkill)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while updating the skill.");
+            }
         }
 
         /// <summary>
@@ -73,10 +108,18 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="id">The ID of the skill to delete.</param>
         [HttpDelete("{id}")]
-        public IActionResult DeleteSkill(int id)
+        public async Task<IActionResult> DeleteSkill(int id)
         {
-            _skillsService.DeleteSkill(id);
-            return NoContent();
+            try
+            {
+                await _skillsService.DeleteSkillAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(SkillsController)}.{nameof(DeleteSkill)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while deleting the skill.");
+            }
         }
     }
 }

@@ -9,19 +9,30 @@ namespace JobPortalAPI.Controllers
     public class EmployersJobListingsController : ControllerBase
     {
         private readonly EmployersJobListingsService _employersJobListingsService;
+        private readonly ILogger<EmployersJobListingsController> _logger;
 
-        public EmployersJobListingsController(EmployersJobListingsService employersJobListingsService)
+        public EmployersJobListingsController(EmployersJobListingsService employersJobListingsService, ILogger<EmployersJobListingsController> logger)
         {
             _employersJobListingsService = employersJobListingsService;
+            _logger = logger;
         }
 
         /// <summary>
         /// Get a list of all employer's job listings.
         /// </summary>
         [HttpGet]
-        public ActionResult<IEnumerable<EmployersJobListingsModel>> GetEmployersJobListings()
+        public async Task<ActionResult<IEnumerable<EmployersJobListingsModel>>>GetEmployersJobListings()
         {
-            return Ok(_employersJobListingsService.GetEmployersJobListings());
+            try
+            {
+                var employerJobListings = await _employersJobListingsService.GetEmployersJobListingsAsync();
+                return Ok(employerJobListings);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(EmployersJobListingsController)}.{nameof(GetEmployersJobListings)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while fetching employer's job listings.");
+            }
         }
 
         /// <summary>
@@ -29,14 +40,22 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="id">The ID of the employer's job listing to retrieve.</param>
         [HttpGet("{id}")]
-        public ActionResult<EmployersJobListingsModel> GetEmployersJobListing(int id)
+        public async Task<ActionResult<EmployersJobListingsModel>> GetEmployersJobListing(int id)
         {
-            var employerJobListing = _employersJobListingsService.GetEmployersJobListing(id);
-            if (employerJobListing == null)
+            try
             {
-                return NotFound();
+                var employerJobListing = await _employersJobListingsService.GetEmployersJobListingAsync(id);
+                if (employerJobListing == null)
+                {
+                    return NotFound();
+                }
+                return Ok(employerJobListing);
             }
-            return Ok(employerJobListing);
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(EmployersJobListingsController)}.{nameof(GetEmployersJobListing)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while fetching the employer's job listing.");
+            }
         }
 
         /// <summary>
@@ -44,10 +63,18 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="employerJobListing">The employer's job listing object to create.</param>
         [HttpPost]
-        public ActionResult<EmployersJobListingsModel> CreateEmployersJobListing(EmployersJobListingsModel employerJobListing)
+        public async Task<ActionResult<EmployersJobListingsModel>> CreateEmployersJobListing(EmployersJobListingsModel employerJobListing)
         {
-            var createdEmployerJobListing = _employersJobListingsService.CreateEmployersJobListing(employerJobListing);
-            return CreatedAtAction(nameof(GetEmployersJobListing), new { id = createdEmployerJobListing.EmployersJobListingID }, createdEmployerJobListing);
+            try
+            {
+                var createdEmployerJobListing = await _employersJobListingsService.CreateEmployersJobListingAsync(employerJobListing);
+                return CreatedAtAction(nameof(GetEmployersJobListing), new { id = createdEmployerJobListing.EmployersJobListingID }, createdEmployerJobListing);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(EmployersJobListingsController)}.{nameof(CreateEmployersJobListing)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while creating the employer's job listing.");
+            }
         }
 
         /// <summary>
@@ -55,10 +82,18 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="id">The ID of the employer's job listing to delete.</param>
         [HttpDelete("{id}")]
-        public IActionResult DeleteEmployersJobListing(int id)
+        public async Task<IActionResult> DeleteEmployersJobListing(int id)
         {
-            _employersJobListingsService.DeleteEmployersJobListing(id);
-            return NoContent();
+            try
+            {
+                await _employersJobListingsService.DeleteEmployersJobListingAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(EmployersJobListingsController)}.{nameof(DeleteEmployersJobListing)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while deleting the employer's job listing.");
+            }
         }
     }
 }

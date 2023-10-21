@@ -9,19 +9,30 @@ namespace JobPortalAPI.Controllers
     public class JobSeekersController : ControllerBase
     {
         private readonly JobSeekersService _jobSeekersService;
+        private readonly ILogger<JobSeekersController> _logger;
 
-        public JobSeekersController(JobSeekersService jobSeekersService)
+        public JobSeekersController(JobSeekersService jobSeekersService, ILogger<JobSeekersController> logger)
         {
             _jobSeekersService = jobSeekersService;
+            _logger = logger;
         }
 
         /// <summary>
         /// Get a list of all job seekers.
         /// </summary>
         [HttpGet]
-        public ActionResult<IEnumerable<JobSeekersModel>> GetJobSeekers()
+        public async Task<ActionResult<IEnumerable<JobSeekersModel>>>GetJobSeekers()
         {
-            return Ok(_jobSeekersService.GetJobSeekers());
+            try
+            {
+                var jobSeekers = await _jobSeekersService.GetJobSeekersAsync();
+                return Ok(jobSeekers);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(JobSeekersController)}.{nameof(GetJobSeekers)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while fetching job seekers.");
+            }
         }
 
         /// <summary>
@@ -29,14 +40,22 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="id">The ID of the job seeker to retrieve.</param>
         [HttpGet("{id}")]
-        public ActionResult<JobSeekersModel> GetJobSeeker(int id)
+        public async Task<ActionResult<JobSeekersModel>> GetJobSeeker(int id)
         {
-            var jobSeeker = _jobSeekersService.GetJobSeeker(id);
-            if (jobSeeker == null)
+            try
             {
-                return NotFound();
+                var jobSeeker = await _jobSeekersService.GetJobSeekerAsync(id);
+                if (jobSeeker == null)
+                {
+                    return NotFound();
+                }
+                return Ok(jobSeeker);
             }
-            return Ok(jobSeeker);
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(JobSeekersController)}.{nameof(GetJobSeeker)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while fetching the job seeker.");
+            }
         }
 
         /// <summary>
@@ -44,10 +63,18 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="jobSeeker">The job seeker object to create.</param>
         [HttpPost]
-        public ActionResult<JobSeekersModel> CreateJobSeeker(JobSeekersModel jobSeeker)
+        public async Task<ActionResult<JobSeekersModel>> CreateJobSeeker(JobSeekersModel jobSeeker)
         {
-            var createdJobSeeker = _jobSeekersService.CreateJobSeeker(jobSeeker);
-            return CreatedAtAction(nameof(GetJobSeeker), new { id = createdJobSeeker.JobSeekerID }, createdJobSeeker);
+            try
+            {
+                var createdJobSeeker = await _jobSeekersService.CreateJobSeekerAsync(jobSeeker);
+                return CreatedAtAction(nameof(GetJobSeeker), new { id = createdJobSeeker.JobSeekerID }, createdJobSeeker);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(JobSeekersController)}.{nameof(CreateJobSeeker)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while creating the job seeker.");
+            }
         }
 
         /// <summary>
@@ -56,16 +83,24 @@ namespace JobPortalAPI.Controllers
         /// <param name="id">The ID of the job seeker to update.</param>
         /// <param name="jobSeeker">The updated job seeker object.</param>
         [HttpPut("{id}")]
-        public IActionResult UpdateJobSeeker(int id, JobSeekersModel jobSeeker)
+        public async Task<IActionResult> UpdateJobSeeker(int id, JobSeekersModel jobSeeker)
         {
-            if (id != jobSeeker.JobSeekerID)
+            try
             {
-                return BadRequest();
+                if (id != jobSeeker.JobSeekerID)
+                {
+                    return BadRequest();
+                }
+
+                await _jobSeekersService.UpdateJobSeekerAsync(id, jobSeeker);
+
+                return NoContent();
             }
-
-            _jobSeekersService.UpdateJobSeeker(id, jobSeeker);
-
-            return NoContent();
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(JobSeekersController)}.{nameof(UpdateJobSeeker)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while updating the job seeker.");
+            }
         }
 
         /// <summary>
@@ -73,10 +108,18 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="id">The ID of the job seeker to delete.</param>
         [HttpDelete("{id}")]
-        public IActionResult DeleteJobSeeker(int id)
+        public async Task<IActionResult> DeleteJobSeeker(int id)
         {
-            _jobSeekersService.DeleteJobSeeker(id);
-            return NoContent();
+            try
+            {
+                await _jobSeekersService.DeleteJobSeekerAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(JobSeekersController)}.{nameof(DeleteJobSeeker)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while deleting the job seeker.");
+            }
         }
     }
 }

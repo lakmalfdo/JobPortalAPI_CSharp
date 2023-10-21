@@ -1,48 +1,62 @@
+using Microsoft.EntityFrameworkCore;
+using JobPortalAPI.Data;
 using JobPortalAPI.Models;
 
 namespace JobPortalAPI.Services
 {
+    /// <summary>
+    /// Service for managing job listings using Entity Framework and an injected DbContext.
+    /// </summary>
     public class JobListingsService
     {
-        private readonly List<JobListingsModel> _jobListings = new List<JobListingsModel>();
-        private int _nextJobID = 1;
+        private readonly ApplicationDbContext _context;
 
-        /// <summary>
-        /// Get a list of all job listings.
-        /// </summary>
-        public IEnumerable<JobListingsModel> GetJobListings()
+        public JobListingsService(ApplicationDbContext context)
         {
-            return _jobListings;
+            _context = context;
         }
 
         /// <summary>
-        /// Get a job listing by its unique ID.
+        /// Get a list of all job listings asynchronously.
+        /// </summary>
+        /// <returns>An asynchronous operation that returns a collection of job listings.</returns>
+        public async Task<IEnumerable<JobListingsModel>> GetJobListingsAsync()
+        {
+            return await _context.JobListings.ToListAsync();
+        }
+
+        /// <summary>
+        /// Get a job listing by its unique ID asynchronously.
         /// </summary>
         /// <param name="jobID">The ID of the job listing to retrieve.</param>
-        public JobListingsModel GetJobListing(int jobID)
+        /// <returns>An asynchronous operation that returns the job listing with the specified ID.</returns>
+        public async Task<JobListingsModel?> GetJobListingAsync(int jobID)
         {
-            return _jobListings.FirstOrDefault(j => j.JobID == jobID);
+            return await _context.JobListings.FirstOrDefaultAsync(j => j.JobID == jobID);
         }
 
         /// <summary>
-        /// Create a new job listing.
+        /// Create a new job listing asynchronously.
         /// </summary>
         /// <param name="jobListing">The job listing object to create.</param>
-        public JobListingsModel CreateJobListing(JobListingsModel jobListing)
+        /// <returns>An asynchronous operation that returns the newly created job listing.</returns>
+        public async Task<JobListingsModel> CreateJobListingAsync(JobListingsModel jobListing)
         {
-            jobListing.JobID = _nextJobID++;
-            _jobListings.Add(jobListing);
+            jobListing.JobID = 0; // EF Core will auto-generate the ID
+            _context.JobListings.Add(jobListing);
+            await _context.SaveChangesAsync();
             return jobListing;
         }
 
         /// <summary>
-        /// Update an existing job listing.
+        /// Update an existing job listing asynchronously.
         /// </summary>
         /// <param name="jobID">The ID of the job listing to update.</param>
         /// <param name="jobListing">The updated job listing object.</param>
-        public void UpdateJobListing(int jobID, JobListingsModel jobListing)
+        /// <returns>An asynchronous operation to update the job listing.</returns>
+        public async Task UpdateJobListingAsync(int jobID, JobListingsModel jobListing)
         {
-            var existingJobListing = _jobListings.FirstOrDefault(j => j.JobID == jobID);
+            var existingJobListing = await _context.JobListings.FirstOrDefaultAsync(j => j.JobID == jobID);
             if (existingJobListing != null)
             {
                 existingJobListing.EmployerID = jobListing.EmployerID;
@@ -53,19 +67,22 @@ namespace JobPortalAPI.Services
                 existingJobListing.Location = jobListing.Location;
                 existingJobListing.ApplicationDeadline = jobListing.ApplicationDeadline;
                 existingJobListing.ApplicationStatus = jobListing.ApplicationStatus;
+                await _context.SaveChangesAsync();
             }
         }
 
         /// <summary>
-        /// Delete a job listing by its unique ID.
+        /// Delete a job listing by its unique ID asynchronously.
         /// </summary>
         /// <param name="jobID">The ID of the job listing to delete.</param>
-        public void DeleteJobListing(int jobID)
+        /// <returns>An asynchronous operation to delete the job listing.</returns>
+        public async Task DeleteJobListingAsync(int jobID)
         {
-            var jobListingToRemove = _jobListings.FirstOrDefault(j => j.JobID == jobID);
+            var jobListingToRemove = await _context.JobListings.FirstOrDefaultAsync(j => j.JobID == jobID);
             if (jobListingToRemove != null)
             {
-                _jobListings.Remove(jobListingToRemove);
+                _context.JobListings.Remove(jobListingToRemove);
+                await _context.SaveChangesAsync();
             }
         }
     }

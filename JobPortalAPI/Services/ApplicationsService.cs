@@ -1,48 +1,62 @@
+using Microsoft.EntityFrameworkCore;
+using JobPortalAPI.Data;
 using JobPortalAPI.Models;
 
 namespace JobPortalAPI.Services
 {
+    /// <summary>
+    /// Service for managing job applications using Entity Framework and an injected DbContext.
+    /// </summary>
     public class ApplicationsService
     {
-        private readonly List<ApplicationsModel> _applications = new List<ApplicationsModel>();
-        private int _nextApplicationID = 1;
+        private readonly ApplicationDbContext _context;
 
-        /// <summary>
-        /// Get a list of all applications.
-        /// </summary>
-        public IEnumerable<ApplicationsModel> GetApplications()
+        public ApplicationsService(ApplicationDbContext context)
         {
-            return _applications;
+            _context = context;
         }
 
         /// <summary>
-        /// Get an application by its unique ID.
+        /// Get a list of all job applications asynchronously.
+        /// </summary>
+        /// <returns>An asynchronous operation that returns a collection of job applications.</returns>
+        public async Task<IEnumerable<ApplicationsModel>> GetApplicationsAsync()
+        {
+            return await _context.Applications.ToListAsync();
+        }
+
+        /// <summary>
+        /// Get a job application by its unique ID asynchronously.
         /// </summary>
         /// <param name="applicationID">The ID of the application to retrieve.</param>
-        public ApplicationsModel GetApplication(int applicationID)
+        /// <returns>An asynchronous operation that returns the job application with the specified ID.</returns>
+        public async Task<ApplicationsModel?> GetApplicationAsync(int applicationID)
         {
-            return _applications.FirstOrDefault(app => app.ApplicationID == applicationID);
+            return await _context.Applications.FirstOrDefaultAsync(app => app.ApplicationID == applicationID);
         }
 
         /// <summary>
-        /// Create a new application.
+        /// Create a new job application asynchronously.
         /// </summary>
         /// <param name="application">The application object to create.</param>
-        public ApplicationsModel CreateApplication(ApplicationsModel application)
+        /// <returns>An asynchronous operation that returns the newly created job application.</returns>
+        public async Task<ApplicationsModel> CreateApplicationAsync(ApplicationsModel application)
         {
-            application.ApplicationID = _nextApplicationID++;
-            _applications.Add(application);
+            application.ApplicationID = _context.Applications.Max(a => a.ApplicationID) + 1;
+            _context.Applications.Add(application);
+            await _context.SaveChangesAsync();
             return application;
         }
 
         /// <summary>
-        /// Update an existing application.
+        /// Update an existing job application asynchronously.
         /// </summary>
         /// <param name="applicationID">The ID of the application to update.</param>
         /// <param name="application">The updated application object.</param>
-        public void UpdateApplication(int applicationID, ApplicationsModel application)
+        /// <returns>An asynchronous operation to update the job application.</returns>
+        public async Task UpdateApplicationAsync(int applicationID, ApplicationsModel application)
         {
-            var existingApplication = _applications.FirstOrDefault(app => app.ApplicationID == applicationID);
+            var existingApplication = await _context.Applications.FirstOrDefaultAsync(app => app.ApplicationID == applicationID);
             if (existingApplication != null)
             {
                 existingApplication.JobID = application.JobID;
@@ -51,19 +65,23 @@ namespace JobPortalAPI.Services
                 existingApplication.ApplicationDate = application.ApplicationDate;
                 existingApplication.AttachedDocuments = application.AttachedDocuments;
                 existingApplication.Comments = application.Comments;
+
+                await _context.SaveChangesAsync();
             }
         }
 
         /// <summary>
-        /// Delete an application by its unique ID.
+        /// Delete a job application by its unique ID asynchronously.
         /// </summary>
         /// <param name="applicationID">The ID of the application to delete.</param>
-        public void DeleteApplication(int applicationID)
+        /// <returns>An asynchronous operation to delete the job application.</returns>
+        public async Task DeleteApplicationAsync(int applicationID)
         {
-            var applicationToRemove = _applications.FirstOrDefault(app => app.ApplicationID == applicationID);
-            if (applicationToRemove != null)
+            var applicationToRemove = await _context.Applications.FirstOrDefaultAsync(app => app.ApplicationID == applicationID);
+            if (applicationToRemove is not null)
             {
-                _applications.Remove(applicationToRemove);
+                _context.Applications.Remove(applicationToRemove);
+                await _context.SaveChangesAsync();
             }
         }
     }

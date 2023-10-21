@@ -9,19 +9,30 @@ namespace JobPortalAPI.Controllers
     public class ApplicationsController : ControllerBase
     {
         private readonly ApplicationsService _applicationsService;
+        private readonly ILogger<ApplicationsController> _logger;
 
-        public ApplicationsController(ApplicationsService applicationsService)
+        public ApplicationsController(ApplicationsService applicationsService, ILogger<ApplicationsController> logger)
         {
             _applicationsService = applicationsService;
+            _logger = logger;
         }
 
         /// <summary>
         /// Get a list of all applications.
         /// </summary>
         [HttpGet]
-        public ActionResult<IEnumerable<ApplicationsModel>> GetApplications()
+        public async Task<ActionResult<IEnumerable<ApplicationsModel>>> GetApplications()
         {
-            return Ok(_applicationsService.GetApplications());
+            try
+            {
+                var applications = await _applicationsService.GetApplicationsAsync();
+                return Ok(applications);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(ApplicationsController)}.{nameof(GetApplications)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while fetching applications.");
+            }
         }
 
         /// <summary>
@@ -29,14 +40,22 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="id">The ID of the application to retrieve.</param>
         [HttpGet("{id}")]
-        public ActionResult<ApplicationsModel> GetApplication(int id)
+        public async Task<ActionResult<ApplicationsModel>> GetApplication(int id)
         {
-            var application = _applicationsService.GetApplication(id);
-            if (application == null)
+            try
             {
-                return NotFound();
+                var application = await _applicationsService.GetApplicationAsync(id);
+                if (application == null)
+                {
+                    return NotFound();
+                }
+                return Ok(application);
             }
-            return Ok(application);
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(ApplicationsController)}.{nameof(GetApplication)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while fetching the application.");
+            }
         }
 
         /// <summary>
@@ -44,10 +63,18 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="application">The application object to create.</param>
         [HttpPost]
-        public ActionResult<ApplicationsModel> CreateApplication(ApplicationsModel application)
+        public async Task<ActionResult<ApplicationsModel>> CreateApplication(ApplicationsModel application)
         {
-            var createdApplication = _applicationsService.CreateApplication(application);
-            return CreatedAtAction(nameof(GetApplication), new { id = createdApplication.ApplicationID }, createdApplication);
+            try
+            {
+                var createdApplication = await _applicationsService.CreateApplicationAsync(application);
+                return CreatedAtAction(nameof(GetApplication), new { id = createdApplication.ApplicationID }, createdApplication);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(ApplicationsController)}.{nameof(CreateApplication)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while creating the application.");
+            }
         }
 
         /// <summary>
@@ -56,16 +83,24 @@ namespace JobPortalAPI.Controllers
         /// <param name="id">The ID of the application to update.</param>
         /// <param name="application">The updated application object.</param>
         [HttpPut("{id}")]
-        public IActionResult UpdateApplication(int id, ApplicationsModel application)
+        public async Task<IActionResult> UpdateApplication(int id, ApplicationsModel application)
         {
-            if (id != application.ApplicationID)
+            try
             {
-                return BadRequest();
+                if (id != application.ApplicationID)
+                {
+                    return BadRequest();
+                }
+
+                await _applicationsService.UpdateApplicationAsync(id, application);
+
+                return NoContent();
             }
-
-            _applicationsService.UpdateApplication(id, application);
-
-            return NoContent();
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(ApplicationsController)}.{nameof(UpdateApplication)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while updating the application.");
+            }
         }
 
         /// <summary>
@@ -73,10 +108,18 @@ namespace JobPortalAPI.Controllers
         /// </summary>
         /// <param name="id">The ID of the application to delete.</param>
         [HttpDelete("{id}")]
-        public IActionResult DeleteApplication(int id)
+        public async Task<IActionResult> DeleteApplication(int id)
         {
-            _applicationsService.DeleteApplication(id);
-            return NoContent();
+            try
+            {
+                await _applicationsService.DeleteApplicationAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"{nameof(ApplicationsController)}.{nameof(DeleteApplication)} - An error occurred: {ex}");
+                return StatusCode(500, "An error occurred while deleting the application.");
+            }
         }
     }
 }
